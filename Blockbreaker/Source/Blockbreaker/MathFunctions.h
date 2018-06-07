@@ -7,7 +7,7 @@
 class Logger;
 
 /**
- * 
+ *  A Class Interface for implementing a Strategy Pattern based on the output of various mathematical functions
  */
 class BLOCKBREAKER_API MathFunction
 {
@@ -17,6 +17,9 @@ protected:
 public:
   virtual float Operation(float *x, float *a, float *b, float *c)=0;
 
+  /** 
+  * Parent class for the various functions
+  */
   MathFunction() {}
   virtual ~MathFunction() {}
   static MathFunction* GetFunction(int32 num);
@@ -25,7 +28,7 @@ public:
   }
 };
 
-/* N-DEGREE MONO-POLYNOMIAL FUNCTIONS */
+/* N-DEGREE MONO/POLYNOMIAL FUNCTIONS */
 class Linear : public MathFunction {
 public:
   Linear() {}
@@ -54,10 +57,16 @@ public:
 
 };
 
-/*  DECORATIVE PATTERN FUNCTIONS  */
-class Squareroot : public MathFunction {
+class Exponential : public MathFunction {
 public:
-  Squareroot() {}
+  Exponential() {}
+  float Operation(float *x, float *a, float *b, float *c);
+
+};
+
+class Logarithmic : public MathFunction {
+public:
+  Logarithmic() {}
   float Operation(float *x, float *a, float *b, float *c);
 
 };
@@ -69,16 +78,9 @@ public:
 
 };
 
-class Exponential : public MathFunction {
+class Squareroot : public MathFunction {
 public:
-  Exponential() {}
-  float Operation(float *x, float *a, float *b, float *c);
-
-};
-
-class Logarithmic : public MathFunction {
-public:
-  Logarithmic() {}
+  Squareroot() {}
   float Operation(float *x, float *a, float *b, float *c);
 
 };
@@ -99,6 +101,9 @@ public:
 
 };
 
+/*
+* I'm pretty sure this is not the proper name for the Cosine function, but I wanted to keep it consistent with Sinusoidal so it can be properly identified
+*/
 class Cosinusoidal : public MathFunction {
 public:
   Cosinusoidal() {}
