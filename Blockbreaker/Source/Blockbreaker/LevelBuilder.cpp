@@ -42,14 +42,17 @@ TArray<ALevelBrick*> ALevelBuilder::BuildLevel(ULevelDesign * Design)
 
   TArray<ALevelBrick*> Bricks;
 
+  /* Spawn the Arch for the level */
   FActorSpawnParameters ArchSpawnInfo;
   ArchSpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
   GetWorld()->SpawnActor<ALevelArch>(ArchLoc, ArchRot, ArchSpawnInfo);
   
+  /* Spawn the player paddle */
   FActorSpawnParameters PaddleSpawnInfo;
   PaddleSpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
   GetWorld()->SpawnActor<ALevelPaddle>(PaddleLoc, PaddleRot, PaddleSpawnInfo);
 
+  /* Spawn the sphere for the level */
   FActorSpawnParameters SphereSpawnInfo;
   SphereSpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
   GetWorld()->SpawnActor<ALevelSphere>(SphereLoc, SphereRot, SphereSpawnInfo);
@@ -61,7 +64,7 @@ TArray<ALevelBrick*> ALevelBuilder::BuildLevel(ULevelDesign * Design)
 
   int NumColors = Colors.Num();
   /*
-  * Here, once the the basic concept is proven, identify the color indices, and 
+  * Here, once the the basic concept is proven, identify the color indices and 
   *   the shader indices, and use the number of colors to determine a broad 
   *   range, with the shaders filling in the areas within those range divisions
   */
@@ -76,6 +79,7 @@ TArray<ALevelBrick*> ALevelBuilder::BuildLevel(ULevelDesign * Design)
       ALevelBrick* Brick = GetWorld()->SpawnActor<ALevelBrick>(BrickLoc, BrickRot, SpawnInfo);
       float BrickInfo = Pattern[BrickNumber];
       //UE_LOG(LogTemp, Warning, TEXT("BrickInfo = %f"), BrickInfo);
+      /* Set Brick Type */
       if (fabs(BrickInfo) == 1.0f || fabs(BrickInfo) == 0.5f) {
         Brick->SetBrickType(EBrickStrength::HARDENED);
       } else if (fabs(BrickInfo) == 0.25f) {
@@ -85,6 +89,7 @@ TArray<ALevelBrick*> ALevelBuilder::BuildLevel(ULevelDesign * Design)
       }else {
         Brick->SetBrickType(EBrickStrength::STANDARD);
       }
+      /* Set Brick Color */
       if (BrickInfo < -0.50f) {
         Brick->SetBrickColor(Colors[0]);
       } else if(BrickInfo < -0.75f){
@@ -102,6 +107,7 @@ TArray<ALevelBrick*> ALevelBuilder::BuildLevel(ULevelDesign * Design)
       BrickNumber++;
     }
   }
+  /* Place some bomb bricks randomly around the level */
   int Bombs = FMath::Rand() % 5;
   int SubDiv = Bricks.Num() / 5;
   for (int i = 0; i < Bombs; i++) {
