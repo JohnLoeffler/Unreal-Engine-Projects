@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "Blockbreaker.h"
 #include "PaddleController.generated.h"
 
 /**

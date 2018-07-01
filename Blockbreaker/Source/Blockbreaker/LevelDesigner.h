@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Blockbreaker.h"
 #include "LevelDesigner.generated.h"
 
 class ULevelDesign;
@@ -22,21 +23,23 @@ public:
   // Sets default values for this actor's properties
 	ALevelDesigner();
 
+  bool Init();
+
   UFUNCTION(BlueprintCallable, Category = "Level Design | Pattern")
-    bool ResetLevelPattern();
+    bool GetNewPattern(int32 Seed);
   UFUNCTION(BlueprintCallable, Category = "Level Design | Palette")
-    bool GetNewPalette();
+    bool GetNewPalette(int32 Seed);
+  
   UFUNCTION(BlueprintCallable, Category = "Level Design | Palette")
     ULevelDesign* GetLevelDesign();
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "")
+    int32 NumBricks;
 
+  //bool ProduceLevelDesign(ULevelDesign& DesignOutput, FString LevelName = "DefaultMap", FString PaletteSeed_HexCode = "000000", FString PatternSeed = "123456789");
 
-  bool ProduceLevelDesign(ULevelDesign& DesignOutput, FString LevelName = "DefaultMap", FString PaletteSeed_HexCode = "000000", FString PatternSeed = "123456789");
-
-protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 

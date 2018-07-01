@@ -4,11 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "Engine/LevelScriptActor.h"
+#include "Blockbreaker.h"
 #include "BlockbreakerLevel.generated.h"
 
-/**
- * 
- */
 UCLASS()
 class BLOCKBREAKER_API ABlockbreakerLevel : public ALevelScriptActor
 {

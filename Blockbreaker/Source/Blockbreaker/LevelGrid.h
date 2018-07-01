@@ -5,16 +5,16 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Blockbreaker.h"
-#include "LevelNet.generated.h"
+#include "LevelGrid.generated.h"
 
 UCLASS()
-class BLOCKBREAKER_API ALevelNet : public AActor
+class BLOCKBREAKER_API ALevelGrid : public AActor
 {
 	GENERATED_BODY()
 	
 public:	
 	// Sets default values for this actor's properties
-	ALevelNet();
+	ALevelGrid();
 
 protected:
 	// Called when the game starts or when spawned

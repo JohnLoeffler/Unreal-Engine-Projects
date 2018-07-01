@@ -1,104 +1,123 @@
 #include "Logger.h"
+#include "Runtime/Core/Public/Misc/FileHelper.h"
+#include "Runtime/Core/Public/HAL/PlatformFilemanager.h"
 #include <iostream>
 #include <sstream>
+#include "Runnable.h"
 
-Logger::Logger() {
-  OPENINFO_F;
-  OPENERROR_F;
-  OPENWARNING_F;
-  OPENCRITICAL_F;
-  OPENDEBUG_F;
+Logger::Logger() : PlatformFile(FPlatformFileManager::Get().GetPlatformFile()){
+  FString TimeStamp = FDateTime::Now().ToString();
+  InfoF.Append(FString(LOGDIR));
+  InfoF.Append("Blockbreaker/Source/Blockbreaker/LogFiles/Info/InfoLog_"); 
+  InfoF.Append(TimeStamp);
+  InfoF.Append(".log");
+  ErrorF.Append(FString(LOGDIR));
+  ErrorF.Append("Blockbreaker/Source/Blockbreaker/LogFiles/Error/ErrorLog_");
+  ErrorF.Append(TimeStamp);
+  ErrorF.Append(".log");
+  WarningF.Append(FString(LOGDIR));
+  WarningF.Append("Blockbreaker/Source/Blockbreaker/LogFiles/Warning/WarningLog_");
+  WarningF.Append(TimeStamp);
+  WarningF.Append(".log");
+  DebugF.Append(FString(LOGDIR));
+  DebugF.Append("Blockbreaker/Source/Blockbreaker/LogFiles/Debug/DebugLog_");
+  DebugF.Append(TimeStamp);
+  DebugF.Append(".log");
+  CritF.Append(FString(LOGDIR));
+  CritF.Append("Blockbreaker/Source/Blockbreaker/LogFiles/Critical/CriticalLog_");
+  CritF.Append(TimeStamp);
+  CritF.Append(".log");
 }
 
 Logger::~Logger() {
-  if (OutputLogs() == 1) {
+  ClearQueues();
+}
 
+bool Logger::Write(Log log){
+  FString Time = FDateTime::Now().GetTimeOfDay().ToString();
+  IFileHandle* Handle;
+  FString str;
+  switch (log.Level) {
+    case _ERR:
+      str = "ERROR|: " + log.Msg + "\n";
+      Handle = PlatformFile.OpenWrite((TEXT("%s"), *ErrorF), true);
+      if (!Handle->Write((const uint8*)TCHAR_TO_ANSI(*str), str.Len())) {
+        str = "Error writing string to Error file:\n\t" + str + "\n";
+        UE_LOG(LogTemp, Warning, TEXT("%s"), *str);
+      }
+      delete Handle;
+      break;
+    case _WARN:
+      str = "WARNING|: " + log.Msg + "\n";
+      Handle = PlatformFile.OpenWrite((TEXT("%s"), *WarningF), true);
+      if (!Handle->Write((const uint8*)TCHAR_TO_ANSI(*str), str.Len())) {
+        str = "Error writing string to Warning file:\n\t" + str + "\n";
+        UE_LOG(LogTemp, Warning, TEXT("%s"), *str);
+      }
+      delete Handle;
+      break;
+    case _DBUG:
+      str = "DEBUG|: " + log.Msg + "\n";
+      Handle = PlatformFile.OpenWrite((TEXT("%s"), *DebugF), true);
+      if (!Handle->Write((const uint8*)TCHAR_TO_ANSI(*str), str.Len())) {
+        str = "Error writing string to Debugging file:\n\t" + str + "\n";
+        LOG(_ERR, str);
+      }
+      delete Handle;
+      break;
+    case _CRIT:
+      str = "CRITICAL|: " + log.Msg + "\n";
+      Handle = PlatformFile.OpenWrite((TEXT("%s"), *CritF), true);
+      if (!Handle->Write((const uint8*)TCHAR_TO_ANSI(*str), str.Len())) {
+        str = "Error writing string to Critical file:\n\t" + str + "\n";
+        UE_LOG(LogTemp, Error, TEXT("%s"), *str);
+      }
+      delete Handle;
+      break;
+    default:
+    case _INF:
+      str = "INFO|: " + log.Msg + "\n";
+      Handle = PlatformFile.OpenWrite((TEXT("%s"), *InfoF), true);
+      if (!Handle->Write((const uint8*)TCHAR_TO_ANSI(*str), str.Len())) {
+        str = "Error writing string to Info file:\n\t" + str + "\n";
+        LOG(_ERR, str);
+      }
+      delete Handle;
+      break;
   }
+  return false;
 }
 
 /* Need to find better way to lock logs during insertion operations */
-void Logger::Write(LogLevel Level, const char *fname, int lineno, const char *fxname, const char* Message) {
-  std::lock_guard<std::mutex> LogGuard(LogMutex);
-  std::stringstream SS, msg;
-
-  msg << fname << "(" << lineno << "): IN->" << fxname << "| " << Message;
-
+void Logger::AddLog(LogLevel Level, FString fname, int32 lineno, FString fxname, FString Message) {
+  FString MSG = fname + "("; 
+  MSG.AppendInt(lineno);
+  MSG.Append("): IN->" + fxname + "| " + Message);
   switch (Level) {
-    case _INFO_:
-      SS << "[ INFO ] : " << msg.str();
-      Info.push_back(SS.str());
-      break;
-    case _ERROR_:
-      SS << "[ ERROR ] : " << msg.str();
-      Error.push_back(SS.str());
-      break;
-    case _WARNING_:
-      SS << "[ WARNING ] : " << msg.str();
-      Warning.push_back(SS.str());
-      break;
-    case _DEBUG_:
-      SS << "[ DEBUG ] : " << msg.str();
-      Debug.push_back(SS.str());
-      break;
-    case _CRITICAL_:
-      SS << "[ CRITICAL ] : " << msg.str();
-      std::cerr << SS.str() << std::endl;
-      Critical.push_back(SS.str());
+    case _CRIT:
+      UE_LOG(LogTemp, Warning, TEXT("|CRITICAL| %s"), *MSG);
+      CriticalLogs.Enqueue(Log(Level, MSG, FDateTime::Now().GetTimeOfDay().ToString()));
       break;
     default:
+      OtherLogs.Enqueue(Log(Level, MSG, FDateTime::Now().GetTimeOfDay().ToString()));
       break;
   }
 }
 
-int Logger::OutputLogs() {
-  std::stringstream SS;
-  if (!Info.empty()) {
-    LOG(_DBUG, "Info is not empty...\n");
-    for (auto itr = Info.begin(); itr != Info.end(); ++itr) {
-      SS << *itr << std::endl;
-    }
-    InfoLog << SS.str();
-    SS.clear();
-    CLOSEINFO_F;
+bool Logger::ClearQueues(){
+  Log Lg;
+  while(!CriticalLogs.IsEmpty()){
+    CriticalLogs.Dequeue(Lg);
+    Write(Lg);
   }
-  if (!Error.empty()) {
-    LOG(_DBUG, "Error is not empty...\n");
-    for (auto itr = Error.begin(); itr != Error.end(); ++itr) {
-      SS << *itr << std::endl;
-    }
-    ErrorLog << SS.str();
-    SS.clear();
-    CLOSEERROR_F;
+  while(!OtherLogs.IsEmpty()){
+    OtherLogs.Dequeue(Lg);
+    Write(Lg);
   }
-  if (!Warning.empty()) {
-    LOG(_DBUG, "Warning is not empty...\n");
-    for (auto itr = Warning.begin(); itr != Warning.end(); ++itr) {
-      SS << *itr << std::endl;
-    }
-    WarningLog << SS.str();
-    SS.clear();
-    CLOSEWARNING_F;
+  if (CriticalLogs.IsEmpty() && OtherLogs.IsEmpty()) {
+    return true;
+  } else {
+    return false;
   }
-  if (!Critical.empty()) {
-    LOG(_DBUG, "Critical is not empty...\n");
-    for (auto itr = Critical.begin(); itr != Critical.end(); ++itr) {
-      std::cerr << *itr << std::endl;
-      SS << *itr << std::endl;
-    }
-    CriticalLog << SS.str();
-    SS.clear();
-    CLOSECRITICAL_F;
-  }
-  if (!Debug.empty()) {
-    LOG(_DBUG, "Debug is not empty...\n");
-    for (auto itr = Debug.begin(); itr != Debug.end(); ++itr) {
-      SS << *itr << std::endl;
-      std::cout << *itr << std::endl;
-    }
-    DebugLog << SS.str();
-    SS.clear();
-    CLOSEDEBUG_F;
-  }
-  //std::cin.get();
-  return 1;
 }
+
